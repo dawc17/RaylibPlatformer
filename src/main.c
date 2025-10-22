@@ -122,6 +122,7 @@ int main(void) {
   InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, TITLE);
 
   Texture2D player_sheet = LoadTexture("resources/Player.png");
+  Texture2D tile_texture = LoadTexture("resources/ground.png");
 
   Sprite player =
       (Sprite){.texture = player_sheet,
@@ -129,7 +130,7 @@ int main(void) {
                .dest_rect = (Rectangle){
                    .x = 10.0, .y = -200.0, .width = 20.0, .height = 28.0}};
 
-  Sprite* level_tiles = load_level(player_sheet);
+  Sprite* level_tiles = load_level(tile_texture);
 
   SetTargetFPS(fps);
 
@@ -182,6 +183,7 @@ int main(void) {
     EndDrawing();
   }
   UnloadTexture(player_sheet);
+  UnloadTexture(tile_texture);
   CloseWindow();
 
   return 0;
