@@ -1,13 +1,12 @@
 #include "raylib.h"
-#include <stdio.h>
 
 int main(void) {
-  InitWindow(800, 450, "Window");
+  InitWindow(1280, 720, "Window");
 
   while (!WindowShouldClose()) {
     BeginDrawing();
     ClearBackground(RAYWHITE);
-    DrawText("Yippe", 180, 200, 20, LIGHTGRAY);
+    DrawText("hallo ben du er svart", 180, 200, 60, BLACK);
     EndDrawing();
   }
 
