@@ -128,7 +128,7 @@ int main(void) {
       (Sprite){.texture = player_sheet,
                .dir = Right,
                .dest_rect = (Rectangle){
-                   .x = 10.0, .y = -200.0, .width = 20.0, .height = 28.0}};
+                   .x = 10.0, .y = -200.0, .width = 18.0, .height = 23.5}};
 
   Sprite* level_tiles = load_level(tile_texture);
 
