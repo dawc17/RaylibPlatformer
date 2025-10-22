@@ -127,7 +127,7 @@ int main(void) {
       (Sprite){.texture = player_sheet,
                .dir = Right,
                .dest_rect = (Rectangle){
-                   .x = 10.0, .y = -200.0, .width = 32.0, .height = 32.0}};
+                   .x = 10.0, .y = -200.0, .width = 20.0, .height = 28.0}};
 
   Sprite* level_tiles = load_level(player_sheet);
 
@@ -159,8 +159,26 @@ int main(void) {
                    tile->dest_rect, (Vector2){0, 0}, 0.0, SKYBLUE);
     }
 
+    // visual size of sprite frame
+    const float sprite_frame_width = 32.0f;
+    const float sprite_frame_height = 32.0f;
+
+    // horizontal offset to center the sprite
+    // (the difference between the sprite (32) and hitbox (20)
+    // and divides it by 2 to get the padding on each side)
+    float offset_x = (sprite_frame_width - player.dest_rect.width) / 2.0f;
+
+    // create the new rectangle for *drawing*
+    // relative to the hitbox (player.dest_rect)
+    Rectangle player_draw_rect = {
+        .x = player.dest_rect.x - offset_x, // position drawing box left of hitbox
+        .y = player.dest_rect.y,            // align top of drawing box with top of hitbox
+        .width = sprite_frame_width,
+        .height = sprite_frame_height
+    };
+
     DrawTexturePro(player.texture, (Rectangle){0, 0, 32 * player.dir, 32},
-                   player.dest_rect, (Vector2){0, 0}, 0.0, SKYBLUE);
+                   player_draw_rect, (Vector2){0, 0}, 0.0, SKYBLUE);
     EndDrawing();
   }
   UnloadTexture(player_sheet);
