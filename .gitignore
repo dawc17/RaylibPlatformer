@@ -53,3 +53,5 @@ dkms.conf
 main
 /include/raygui/examples
 /include/raygui/projects
+*.zip
+game
