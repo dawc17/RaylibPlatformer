@@ -2,6 +2,7 @@
 #include "../include/vec.h"
 #include "raylib.h"
 #include "rlgl.h"
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
 
@@ -64,6 +65,57 @@ typedef struct Sprite {
   enum SpriteDirection dir;
 } Sprite;
 
+typedef enum AnimationType {
+  REPEATING = 1,
+  ONESHOT = 2,
+} AnimationType;
+
+typedef struct Animation {
+  int first;
+  int last;
+  int current_frame;
+
+  float speed;
+  float duration_left;
+
+  AnimationType type;
+} Animation;
+
+void animation_update(Animation* self) {
+  float delta = GetFrameTime();
+  self->duration_left -= delta;
+
+  if (self->duration_left <= 0.0) {
+    self->duration_left = self->speed;
+    self->current_frame++;
+
+    if (self->current_frame > self->last) {
+      switch (self->type) {
+      case REPEATING:
+        self->current_frame = self->first;
+        break;
+      case ONESHOT:
+        self->current_frame = self->last;
+        break;
+      }
+    }
+  }
+}
+
+Rectangle animation_frame(Animation* self, int num_frames_per_row) {
+  int x = (self->current_frame % num_frames_per_row) * 32.0;
+  int y = (self->current_frame / num_frames_per_row) * 32.0;
+
+  return (Rectangle) {
+    .x = (float)x,
+    .y = (float)y,
+    .width = 32.0,
+    .height = 32.0
+  };
+}
+
+bool isIdle = true;
+
 void move_player(Sprite *player) {
   float move_speed = 250.0f;
 
@@ -71,14 +123,20 @@ void move_player(Sprite *player) {
 
   if (IsKeyDown(KEY_D)) {
     player->velocity.x = move_speed;
-    player->dir = Left;
+    player->dir = Right;
+    isIdle = false;
   }
   if (IsKeyDown(KEY_A)) {
     player->velocity.x = -move_speed;
-    player->dir = Right;
+    player->dir = Left;
+    isIdle = false;
   }
   if (IsKeyPressed(KEY_SPACE)) {
     player->velocity.y = -1300.0;
+  }
+
+  if (player->velocity.x == 0) {
+    isIdle = true;
   }
 }
 
@@ -94,6 +152,7 @@ void apply_gravity(Sprite *sprite) {
 void apply_velocity_y(Sprite *sprite) {
   sprite->dest_rect.y += sprite->velocity.y * GetFrameTime();
 }
+
 
 void apply_velocity_x(Sprite *sprite) {
   sprite->dest_rect.x += sprite->velocity.x * GetFrameTime();
@@ -160,10 +219,27 @@ int main(void) {
 
   InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, TITLE);
 
-  bool showMessageBox = true;
-
-  Texture2D player_sheet = LoadTexture("resources/Player.png");
+  Texture2D player_idle_stripe = LoadTexture("resources/player_idle_stripe.png");
+  Texture2D player_walk_stripe = LoadTexture("resources/player_walk_stripe.png");
   Texture2D tile_texture = LoadTexture("resources/ground.png");
+
+  Animation idle_anim = (Animation) {
+    .first = 0,
+    .last = 5,
+    .current_frame = 0,
+    .speed = 0.1,
+    .duration_left = 0.1,
+    .type = REPEATING  
+  };
+
+  Animation walk_anim = (Animation) {
+    .first = 0,
+    .last = 5,
+    .current_frame = 0,
+    .speed = 0.1,
+    .duration_left = 0.1,
+    .type = REPEATING
+  };
 
   Shader shaders[MAX_POSTPRO_SHADERS] = { 0 };
 
@@ -184,7 +260,7 @@ int main(void) {
   RenderTexture2D target = LoadRenderTexture(SCREEN_WIDTH, SCREEN_HEIGHT);
 
   Sprite player = 
-      (Sprite){.texture = player_sheet,
+      (Sprite){.texture = player_idle_stripe,
                .dir = Right,
                .dest_rect = (Rectangle){
                    .x = 10.0, .y = -200.0, .width = 50.0, .height = 90.5}};
@@ -239,10 +315,28 @@ int main(void) {
         .width = sprite_frame_width,
         .height = sprite_frame_height
     };
+    if (isIdle == true){
+      Rectangle source_frame = animation_frame(&idle_anim, 6);
 
-    DrawTexturePro(player.texture, (Rectangle){0, 0, 32 * player.dir, 32},
-                   player_draw_rect, (Vector2){0, 0}, 0.0, SKYBLUE);
+      source_frame.width *= player.dir;
+      DrawTexturePro(player_idle_stripe, source_frame, 
+                  player_draw_rect, (Vector2){0, 0}, 0.0, WHITE);
+
+    } else {
+      Rectangle source_frame = animation_frame(&walk_anim, 6);
+
+      source_frame.width *= player.dir;
+      DrawTexturePro(player_walk_stripe, source_frame, 
+                   player_draw_rect, (Vector2){0, 0}, 0.0, WHITE);
+    }
     EndTextureMode();
+
+    if (isIdle == true) {
+      animation_update(&idle_anim);
+    }
+    else {
+      animation_update(&walk_anim);
+    }
 
     // draw
     BeginDrawing();
@@ -270,7 +364,8 @@ int main(void) {
   }
   for (int i = 0; i < MAX_POSTPRO_SHADERS; i++) UnloadShader(shaders[i]);
   UnloadRenderTexture(target);
-  UnloadTexture(player_sheet);
+  UnloadTexture(player_idle_stripe);
+  UnloadTexture(player_walk_stripe);
   UnloadTexture(tile_texture);
   CloseWindow();
 
