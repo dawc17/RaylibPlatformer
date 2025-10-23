@@ -43,10 +43,10 @@ static const char *postproShaderText[] = {
 // clang-format off
 const int level[] = {
   0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 1, 0, 1, 0,
   0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 1, 0, 0, 0, 1,
+  0, 0, 0, 0, 0, 1, 1, 1, 0,
   0, 0, 0, 0, 0, 0, 0, 0, 0,
   0, 0, 0, 0, 0, 0, 0, 0, 0,
   0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -186,6 +186,31 @@ void check_collisions_x(Sprite *sprite, Sprite* tiles) {
   }
 }
 
+void draw_debug_hitboxes(Sprite *player, Sprite *tiles, bool show) {
+    if (!show) return;
+
+    DrawRectangleLines(
+        (int)player->dest_rect.x,
+        (int)player->dest_rect.y,
+        (int)player->dest_rect.width,
+        (int)player->dest_rect.height,
+        RED
+    );
+
+    size_t num_tiles = vector_size(tiles);
+    for (size_t i = 0; i < num_tiles; i++) {
+        Sprite *tile = &tiles[i];
+        DrawRectangleLines(
+            (int)tile->dest_rect.x,
+            (int)tile->dest_rect.y,
+            (int)tile->dest_rect.width,
+            (int)tile->dest_rect.height,
+            GREEN
+        );
+    }
+}
+
+
 Sprite* load_level(Texture2D temp_texture) {
   const int level_width = 9;
   const int level_height = 11;
@@ -263,6 +288,8 @@ int main(void) {
   int currentShader = NONE;
   RenderTexture2D target = LoadRenderTexture(SCREEN_WIDTH, SCREEN_HEIGHT);
 
+  bool showHitboxes = false;
+
   Sprite player = 
       (Sprite){.texture = player_idle_stripe,
                .dir = Right,
@@ -280,6 +307,10 @@ int main(void) {
     if (currentShader >= MAX_POSTPRO_SHADERS) currentShader = 0;
     else if (currentShader < 0) currentShader = MAX_POSTPRO_SHADERS - 1;
 
+    if (IsKeyPressed(KEY_H)) {
+      showHitboxes = !showHitboxes;
+    }
+
     // update
     move_player(&player);
     apply_gravity(&player);
@@ -296,12 +327,12 @@ int main(void) {
     }
 
     BeginTextureMode(target);
-    ClearBackground(RAYWHITE);
+    ClearBackground(SKYBLUE);
     size_t n = vector_size(level_tiles);
     for (size_t i = 0; i < n; i++) {
       Sprite* tile = &level_tiles[i];
       DrawTexturePro(tile->texture, (Rectangle){0, 0, 128, 128},
-                   tile->dest_rect, (Vector2){0, 0}, 0.0, SKYBLUE);
+                   tile->dest_rect, (Vector2){0, 0}, 0.0, WHITE);
     }
     const float sprite_frame_width = 128.0f;
     const float sprite_frame_height = 128.0f;
@@ -333,6 +364,7 @@ int main(void) {
       DrawTexturePro(player_walk_stripe, source_frame, 
                    player_draw_rect, (Vector2){0, 0}, 0.0, WHITE);
     }
+    draw_debug_hitboxes(&player, level_tiles, showHitboxes);
     EndTextureMode();
 
     if (isIdle == true) {
@@ -344,7 +376,7 @@ int main(void) {
 
     // draw
     BeginDrawing();
-    ClearBackground(RAYWHITE);
+    ClearBackground(SKYBLUE);
 
     if (currentShader != NONE){
       BeginShaderMode(shaders[currentShader]);
@@ -356,13 +388,10 @@ int main(void) {
 
     DrawRectangle(0, 9, 580, 30, Fade(LIGHTGRAY, 0.7f));
     DrawText("CURRENT SHADER:", 10, 15, 20, BLACK);
+    DrawText("Press H to show hitboxes", 10, 40, 20, GOLD);
     DrawText(postproShaderText[currentShader], 330, 15, 20, RED);
     DrawText("< >", 540, 10, 30, DARKBLUE);
     DrawFPS(700, 15);
-    if (GuiButton((Rectangle){200,200,300,100}, "Cycle shader")) {
-      currentShader++;
-      printf("Current shader: %s\n", postproShaderText[currentShader]);
-    }
 
     EndDrawing();
   }
