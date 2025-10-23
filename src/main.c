@@ -5,6 +5,9 @@
 #include <stddef.h>
 #include <stdio.h>
 
+#define RAYGUI_IMPLEMENTATION
+#include "../include/raygui/src/raygui.h"
+
 #if defined(PLATFORM_DESKTOP)
 #define GLSL_VERSION 330
 #else // PLATFORM_ANDROID, PLATFORM_WEB
@@ -157,6 +160,8 @@ int main(void) {
 
   InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, TITLE);
 
+  bool showMessageBox = true;
+
   Texture2D player_sheet = LoadTexture("resources/Player.png");
   Texture2D tile_texture = LoadTexture("resources/ground.png");
 
@@ -251,12 +256,15 @@ int main(void) {
       DrawTextureRec(target.texture, (Rectangle){0,0,(float)target.texture.width, (float)-target.texture.height}, (Vector2){0,0}, WHITE);
     }
 
-
     DrawRectangle(0, 9, 580, 30, Fade(LIGHTGRAY, 0.7f));
     DrawText("CURRENT SHADER:", 10, 15, 20, BLACK);
     DrawText(postproShaderText[currentShader], 330, 15, 20, RED);
     DrawText("< >", 540, 10, 30, DARKBLUE);
     DrawFPS(700, 15);
+    if (GuiButton((Rectangle){200,200,300,100}, "Cycle shader")) {
+      currentShader++;
+      printf("Current shader: %s\n", postproShaderText[currentShader]);
+    }
 
     EndDrawing();
   }
