@@ -241,6 +241,10 @@ int main(void) {
     .type = REPEATING
   };
 
+  Animation jump_anim = (Animation) {
+
+  };
+
   Shader shaders[MAX_POSTPRO_SHADERS] = { 0 };
 
   shaders[FX_GRAYSCALE] = LoadShader(0, TextFormat("resources/shaders/grayscale.fs"));
