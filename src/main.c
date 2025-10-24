@@ -50,7 +50,7 @@ const int level[] = {
   0, 0, 0, 0, 0, 0, 0, 0, 0,
   0, 0, 0, 0, 0, 0, 0, 0, 0,
   0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 1, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0,
   0, 0, 1, 1, 0, 1, 0, 0, 0,
   1, 1, 1, 1, 1, 1, 1, 1, 1
 };
@@ -115,6 +115,7 @@ Rectangle animation_frame(Animation* self, int num_frames_per_row) {
 }
 
 bool isIdle = true;
+bool isGrounded = true;
 
 void move_player(Sprite *player) {
   float move_speed = 250.0f;
@@ -131,8 +132,9 @@ void move_player(Sprite *player) {
     player->dir = Left;
     isIdle = false;
   }
-  if (IsKeyPressed(KEY_SPACE)) {
-    player->velocity.y = -1300.0;
+  if (IsKeyPressed(KEY_SPACE) && isGrounded || IsKeyDown(KEY_SPACE) && isGrounded) {
+    player->velocity.y = -800.0;
+    isGrounded = false;
   }
 
   if (player->velocity.x == 0) {
@@ -141,18 +143,19 @@ void move_player(Sprite *player) {
 }
 
 void apply_gravity(Sprite *sprite) {
-  float gravity = 50.0f;
+  float gravity = 3000.0f;
+  float terminal_velocity = 750.0f;
+  float delta = GetFrameTime();
 
-  sprite->velocity.y += gravity;
-  if (sprite->velocity.y > 600.0) {
-    sprite->velocity.y = 750.0;
+  sprite->velocity.y += gravity * delta;
+  if (sprite->velocity.y > terminal_velocity) {
+    sprite->velocity.y = terminal_velocity;
   }
 }
 
 void apply_velocity_y(Sprite *sprite) {
   sprite->dest_rect.y += sprite->velocity.y * GetFrameTime();
 }
-
 
 void apply_velocity_x(Sprite *sprite) {
   sprite->dest_rect.x += sprite->velocity.x * GetFrameTime();
@@ -163,10 +166,15 @@ void check_collisions_y(Sprite *sprite, Sprite* tiles) {
   for (size_t i = 0; i < num_tiles; i++){
     Sprite* tile = &tiles[i];
     if (CheckCollisionRecs(sprite->dest_rect, tile->dest_rect)) {
-      if (sprite->dest_rect.y > tile->dest_rect.y) {
-        sprite->dest_rect.y = tile->dest_rect.y + tile->dest_rect.height;
-      } else {
+
+      if (sprite->velocity.y > 0) {
         sprite->dest_rect.y = tile->dest_rect.y - sprite->dest_rect.height;
+        sprite->velocity.y = 0;
+        isGrounded = true;
+      }
+      else if (sprite->velocity.y < 0) {
+        sprite->dest_rect.y = tile->dest_rect.y + sprite->dest_rect.height;
+        sprite->velocity.y = 0;
       }
     }
   }
@@ -240,7 +248,7 @@ int main(void) {
   const int SCREEN_WIDTH = 1280;
   const int SCREEN_HEIGHT = 720;
   const char *TITLE = "Raylib Program";
-  int fps = 165;
+  int fps = 60;
 
   InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, TITLE);
 
@@ -298,6 +306,15 @@ int main(void) {
 
   Sprite* level_tiles = load_level(tile_texture);
 
+  Camera2D camera = {0};
+  camera.target = (Vector2){
+    player.dest_rect.x + (player.dest_rect.width / 2.0f),
+    player.dest_rect.y + (player.dest_rect.height / 2.0f)
+  };
+  camera.offset = (Vector2){SCREEN_WIDTH/2.0f, SCREEN_HEIGHT/2.0f};
+  camera.rotation = 0.0f;
+  camera.zoom = 1.25f;
+
   SetTargetFPS(fps);
 
   while (!WindowShouldClose()) {
@@ -311,9 +328,16 @@ int main(void) {
       showHitboxes = !showHitboxes;
     }
 
+    if (IsKeyDown(KEY_B)) {
+      printf("isGrounded = %d\n", isGrounded);
+    }
+
     // update
     move_player(&player);
     apply_gravity(&player);
+    isGrounded = false;
+
+    camera.target = (Vector2){player.dest_rect.x + 20, player.dest_rect.y + 20};
 
     // after all movement update
     apply_velocity_y(&player);
@@ -324,10 +348,13 @@ int main(void) {
     // keep from falling
     if (player.dest_rect.y > GetScreenHeight() - player.dest_rect.height) {
       player.dest_rect.y = GetScreenHeight() - player.dest_rect.height;
+      player.velocity.y = 0;
+      isGrounded = true;
     }
 
     BeginTextureMode(target);
     ClearBackground(SKYBLUE);
+    BeginMode2D(camera);
     size_t n = vector_size(level_tiles);
     for (size_t i = 0; i < n; i++) {
       Sprite* tile = &level_tiles[i];
@@ -365,6 +392,7 @@ int main(void) {
                    player_draw_rect, (Vector2){0, 0}, 0.0, WHITE);
     }
     draw_debug_hitboxes(&player, level_tiles, showHitboxes);
+    EndMode2D();
     EndTextureMode();
 
     if (isIdle == true) {
@@ -378,6 +406,7 @@ int main(void) {
     BeginDrawing();
     ClearBackground(SKYBLUE);
 
+
     if (currentShader != NONE){
       BeginShaderMode(shaders[currentShader]);
       DrawTextureRec(target.texture, (Rectangle){0,0,(float)target.texture.width, (float)-target.texture.height}, (Vector2){0,0}, WHITE);
@@ -385,6 +414,7 @@ int main(void) {
     } else {
       DrawTextureRec(target.texture, (Rectangle){0,0,(float)target.texture.width, (float)-target.texture.height}, (Vector2){0,0}, WHITE);
     }
+
 
     DrawRectangle(0, 9, 580, 30, Fade(LIGHTGRAY, 0.7f));
     DrawText("CURRENT SHADER:", 10, 15, 20, BLACK);
