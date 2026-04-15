@@ -1,7 +1,7 @@
 #include "../include/vec.c"
 #include "../include/vec.h"
-#include "raylib.h"
-#include "rlgl.h"
+#include "../include/raylib.h"
+#include "../include/rlgl.h"
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
